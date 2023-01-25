@@ -66,7 +66,7 @@ export default function handler(
     });
   });
 
-  res.status(200).json({ name: "PostHog event(s) sent!" });
+  res.status(204).end();
 }
 
 client.shutdown();
