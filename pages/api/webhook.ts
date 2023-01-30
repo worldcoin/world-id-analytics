@@ -22,7 +22,7 @@ interface Contracts {
 }
 
 const contracts: Contracts = {
-  "0x0000000000000000000000000000000000000000": "burn",
+  // "0x0000000000000000000000000000000000000000": "burn",
   "0x8f9b3A2Eb1dfa6D90dEE7C6373f9C0088FeEebAB": "lens",
   // More contracts here...
 };
