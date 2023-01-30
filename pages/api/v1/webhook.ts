@@ -6,8 +6,6 @@ type Data = {
 };
 
 interface EventProps {
-  id: string;
-  webhookId: string;
   timestamp: Date;
   contract: string;
   network: string;
@@ -27,9 +25,7 @@ const contracts: Contracts = {
   // More contracts here...
 };
 
-const client = new PostHog(process.env.WORLD_ID_PUBLIC_KEY!);
-
-console.log("---START ADDRESS MONITORING---");
+const client = new PostHog(process.env.WORLD_ID_POSTHOG_PROJECT_KEY!);
 
 export default function handler(
   req: NextApiRequest,
@@ -44,8 +40,6 @@ export default function handler(
       hash: any;
       blockNum: any;
     }) => ({
-      id: webhook.id,
-      webhookId: webhook.webhookId,
       timestamp: webhook.createdAt,
       contract: contracts[event.toAddress] || "unknown",
       network: webhook.event.network,
@@ -66,6 +60,9 @@ export default function handler(
     });
   });
 
+  console.log(
+    `Processed ${events.length} events from webhook id ${webhook.id}`
+  );
   res.status(204).end();
 }
 
