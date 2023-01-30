@@ -22,7 +22,6 @@ const ALLOWED_EVENTS = new Set([
   "World ID verification success",
   "WLD airdrop block claimed",
   "Airdrop level reward claimed",
-  "wid verification success",
   // More verification events here...
 ]);
 
