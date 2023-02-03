@@ -6,14 +6,10 @@ type Data = {
   error?: string;
 };
 
-interface Project {
-  id: string | undefined;
-  events: string[];
-}
-
 interface Params {
   start: string;
   end: string;
+  filterDevPortal: boolean;
   filterWldClaims: boolean;
   filterAirdrops: boolean;
   filterPhones: boolean;
@@ -26,14 +22,13 @@ const POSTHOG_EVENTS = [
   {
     id: process.env.WORLD_APP_POSTHOG_PROJECT_ID,
     events: new Set([
-      "World ID verification success",
       "WLD airdrop block claimed",
       "Airdrop level reward claimed",
     ]),
   },
   {
     id: process.env.WORLD_ID_POSTHOG_PROJECT_ID,
-    events: new Set(["onchain verification", "phone verification verified"]),
+    events: new Set(["onchain verification"]),
   },
 ];
 
@@ -50,9 +45,9 @@ const fetchDevPortalEvents = async (params: Params) => {
     headers: headers,
     body: JSON.stringify({
       query: `query VerificationQuery($start: timestamptz, $end: timestamptz) {
-        nullifier_aggregate(where: {created_at: {_gte: $start, _lt: $end}}, distinct_on: nullifier_hash) {
+        nullifier_aggregate(where: {action_id: {_nregex: "^wid_staging_.*$"}, created_at: {_gte: $start, _lt: $end}}) {
           aggregate {
-            count(columns: nullifier_hash, distinct: true)
+            count(columns: id, distinct: true)
           }
         }
       }`,
@@ -64,9 +59,7 @@ const fetchDevPortalEvents = async (params: Params) => {
   };
 
   return fetch(DEV_PORTAL_URL, options)
-    .then((response) => {
-      return response.json();
-    })
+    .then(async (response) => await response.json())
     .catch((error) => {
       console.error(`error: ${error}`);
     });
@@ -104,28 +97,30 @@ export default async function handler(
   const params: Params = {
     start: req.body.start || "2022-01-01",
     end: req.body.end || new Date().toISOString(),
+    filterDevPortal: req.body.filter_dev_portal || false,
     filterWldClaims: req.body.filter_wld_claims || false,
     filterAirdrops: req.body.filter_airdrops || false,
-    filterPhones: req.body.filter_phones || false,
+    filterPhones: req.body.filter_phones || false, // Not currently active
     filterTests: req.body.filter_tests || false,
   };
 
-  const devPortalEventCount = await fetchDevPortalEvents(params)
-    .then((data) => {
-      return data.data.nullifier_aggregate.aggregate.count;
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(500).json({ success: false, error: error });
-    });
+  let devPortalEventCount = 0;
+  if (!params.filterDevPortal) {
+    devPortalEventCount = await fetchDevPortalEvents(params)
+      .then((data) => {
+        return data.data.nullifier_aggregate.aggregate.count;
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(500).json({ success: false, error: error });
+      });
+  }
 
   let filteredEvents = POSTHOG_EVENTS;
   if (params.filterWldClaims)
     filteredEvents[0].events.delete("WLD airdrop block claimed");
   if (params.filterAirdrops)
     filteredEvents[0].events.delete("Airdrop level reward claimed");
-  if (params.filterPhones)
-    filteredEvents[1].events.delete("phone verification verified");
 
   const postHogEventCount = await Promise.all(
     filteredEvents.map((project) => {
@@ -154,7 +149,10 @@ export default async function handler(
     })
     .catch((error) => {
       console.error(error);
-      res.status(500).json({ success: false, error: error });
+      res.status(500).json({
+        success: false,
+        error: "Server-side error occurred, please check the logs!",
+      });
     });
 
   res

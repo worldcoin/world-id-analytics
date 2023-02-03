@@ -1,5 +1,7 @@
+import * as crypto from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PostHog } from "posthog-node";
+import getRawBody from "raw-body";
 
 type Data = {
   name: string;
@@ -20,18 +22,45 @@ interface Contracts {
 }
 
 const contracts: Contracts = {
-  "0x0000000000000000000000000000000000000000": "burn",
   "0x8f9b3A2Eb1dfa6D90dEE7C6373f9C0088FeEebAB": "lens",
   // More contracts here...
 };
 
 const client = new PostHog(process.env.WORLD_ID_POSTHOG_PROJECT_KEY!);
 
-export default function handler(
+// Implemention from: https://docs.alchemy.com/reference/notify-api-quickstart#example-signature-validation
+function isValidSignatureForStringBody(
+  body: string,
+  signature: string
+): boolean {
+  const hmac = crypto.createHmac(
+    "sha256",
+    process.env.ALCHEMY_SIGNING_KEY as string
+  );
+  hmac.update(body, "utf8");
+  const digest = hmac.digest("hex");
+  return signature === digest;
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-  const webhook = req.body;
+  const rawBody = await getRawBody(req).then((buf) => buf);
+  const signature = req.headers["x-alchemy-signature"];
+
+  // Verify the webhook request came from Alchemy
+  if (!isValidSignatureForStringBody(rawBody.toString(), signature as string)) {
+    return res.status(401).end();
+  }
+
+  const webhook = JSON.parse(rawBody.toString());
 
   const events: EventProps[] = webhook.event.activity.map(
     (event: {
@@ -60,10 +89,8 @@ export default function handler(
     });
   });
 
-  console.log(
-    `Processed ${events.length} events from webhook id ${webhook.id}`
-  );
-  res.status(204).end();
+  console.log(`Processed ${events.length} events from webhook ${webhook.id}`);
+  return res.status(204).end();
 }
 
 client.shutdown();

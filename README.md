@@ -1,6 +1,6 @@
 # world-id-analytics
 
-Monitors events related to World ID verifications, both from the SDK and the Worldcoin app.
+Monitors events related to World ID verifications, from a variety of sources (On-chain, PostHog, Developer Portal).
 
 ## Event Definitions
 
@@ -8,14 +8,16 @@ The following are the events consumed to determine total number of verifications
 
 Worldcoin app:
 
-- `World ID verification success`: Successful verification from inside the app
 - `WLD airdrop block claimed`: User claimed a share of $WLD, which requires a World ID verification
 - `Airdrop level reward claimed`: User claimed an airdrop (BTC/ETH/USDC) inside the Worldcoin app
 
 World ID:
 
 - `onchain verification`: User performed verification via smart contract (E.g. Lens)
-- `phone verification`: User performed verification via phone OTP (Twilio)
+
+Developer Portal:
+
+- `nullifier_id`: Each unique ID from the nullifier set represents a World ID verification
 
 ## API Endpoints
 
