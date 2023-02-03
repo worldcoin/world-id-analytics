@@ -32,6 +32,7 @@ Request Body:
 |-------------------|---------|--------------------------------------------------------------------------------------------------------|
 | start | string | ISO timestamp of where to begin summing events (inclusive) |
 | end | string | ISO timestamp of where to stop summing events (exclusive) |
+| filter_dev_portal | boolean |Exclude developer portal actions in the event total? Defaults to `false` |
 | filter_wld_claims | boolean |Exclude $WLD claims in the event total? Defaults to `false` |
 | filter_airdrops | boolean | Exclude airdrop claims (BTC/ETH/USDC) in the event total? Defaults to `false` |
 | filter_phones | boolean | Exclude phone verifications in the event total? Defaults to `false` |
@@ -43,6 +44,7 @@ Example:
 {
   "start": "2022-01-01",
   "end": "2023-02-01",
+  "filter_dev_portal": false,
   "filter_wld_claims": false,
   "filter_airdrops": false,
   "filter_phones": false,
