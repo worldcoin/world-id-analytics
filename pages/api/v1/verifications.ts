@@ -45,7 +45,7 @@ const fetchDevPortalEvents = async (params: Params) => {
     headers: headers,
     body: JSON.stringify({
       query: `query VerificationQuery($start: timestamptz, $end: timestamptz) {
-        nullifier_aggregate(where: {action_id: {_nregex: "^wid_staging_.*$"}, created_at: {_gte: $start, _lt: $end}}) {
+        nullifier_aggregate(where: {created_at: {_gte: $start, _lt: $end}, action: {is_staging: {_eq: false}}}) {
           aggregate {
             count(columns: id, distinct: true)
           }
@@ -94,6 +94,19 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
+  // Secure the endpoint during initial rollout
+  if (
+    !process.env.ANALYTICS_API_SECRET ||
+    req.headers.authorization?.replace("Bearer ", "") !==
+      process.env.ANALYTICS_API_SECRET
+  ) {
+    res.status(401).json({
+      success: false,
+      error: "You do not have permission to access this resource.",
+    });
+    return;
+  }
+
   const params: Params = {
     start: req.body.start || "2022-01-01",
     end: req.body.end || new Date().toISOString(),
@@ -104,6 +117,7 @@ export default async function handler(
     filterTests: req.body.filter_tests || false,
   };
 
+  // Get event totals from developer portal
   let devPortalEventCount = 0;
   if (!params.filterDevPortal) {
     devPortalEventCount = await fetchDevPortalEvents(params)
@@ -112,10 +126,14 @@ export default async function handler(
       })
       .catch((error) => {
         console.error(error);
-        res.status(500).json({ success: false, error: error });
+        res.status(500).json({
+          success: false,
+          error: "Server-side error occurred, please check the logs!",
+        });
       });
   }
 
+  // Filter events retrieved from posthog based on given params
   let filteredEvents = POSTHOG_EVENTS;
   if (params.filterWldClaims)
     filteredEvents[0].events.delete("WLD airdrop block claimed");
