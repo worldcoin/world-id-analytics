@@ -100,7 +100,7 @@ export default async function handler(
     req.headers.authorization?.replace("Bearer ", "") !==
       process.env.ANALYTICS_API_SECRET
   ) {
-    res.status(403).json({
+    res.status(401).json({
       success: false,
       error: "You do not have permission to access this resource.",
     });
