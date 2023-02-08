@@ -26,9 +26,12 @@ const contracts: Contracts = {
   // More contracts here...
 };
 
-const client = new PostHog(process.env.WORLD_ID_POSTHOG_PROJECT_KEY!);
+const client = new PostHog(process.env.WORLD_ID_POSTHOG_PROJECT_KEY!, {
+  flushAt: 1,
+  flushInterval: 0,
+});
 
-// Implemention from: https://docs.alchemy.com/reference/notify-api-quickstart#example-signature-validation
+// Implementation from: https://docs.alchemy.com/reference/notify-api-quickstart#example-signature-validation
 function isValidSignatureForStringBody(
   body: string,
   signature: string
@@ -89,8 +92,8 @@ export default async function handler(
     });
   });
 
+  await client.shutdownAsync();
+
   console.log(`Processed ${events.length} events from webhook ${webhook.id}`);
   return res.status(204).end();
 }
-
-client.shutdown();
