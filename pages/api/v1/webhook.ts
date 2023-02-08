@@ -30,6 +30,7 @@ const client = new PostHog(process.env.WORLD_ID_POSTHOG_PROJECT_KEY!, {
   flushAt: 1,
   flushInterval: 0,
 });
+client.debug();
 
 // Implementation from: https://docs.alchemy.com/reference/notify-api-quickstart#example-signature-validation
 function isValidSignatureForStringBody(
