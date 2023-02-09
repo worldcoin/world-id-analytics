@@ -85,16 +85,21 @@ export default async function handler(
 
   console.log(`INCOMING REQUEST: ${webhook.id}, ${events.length} events`);
 
-  events.forEach((event) => {
-    client.capture({
-      distinctId: event.fromAddress,
-      event: `onchain verification`,
-      properties: event,
+  try {
+    events.forEach((event) => {
+      client.capture({
+        distinctId: event.fromAddress,
+        event: `onchain verification`,
+        properties: event,
+      });
     });
-  });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    await client.shutdownAsync();
+    await new Promise((r) => setTimeout(r, 1000)); // Known issue, see https://github.com/PostHog/posthog/issues/13092
 
-  await client.shutdownAsync();
-
-  console.log(`Processed ${events.length} events from webhook ${webhook.id}`);
-  return res.status(204).end();
+    console.log(`Processed ${events.length} events from webhook ${webhook.id}`);
+    return res.status(204).end();
+  }
 }
