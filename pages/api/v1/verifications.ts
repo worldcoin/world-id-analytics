@@ -45,7 +45,7 @@ const fetchDevPortalEvents = async (params: Params) => {
     headers: headers,
     body: JSON.stringify({
       query: `query VerificationQuery($start: timestamptz, $end: timestamptz) {
-        nullifier_aggregate(where: {created_at: {_gte: $start, _lt: $end}, action: {is_staging: {_eq: false}}}) {
+        nullifier_aggregate(where: {created_at: {_gte: $start, _lt: $end}, action: {app: {is_staging: {_eq: false}}}}) {
           aggregate {
             count(columns: id, distinct: true)
           }
@@ -120,9 +120,9 @@ export default async function handler(
   // Get event totals from developer portal
   let devPortalEventCount = 0;
   if (!params.filterDevPortal) {
-    devPortalEventCount = await fetchDevPortalEvents(params)
+    fetchDevPortalEvents(params)
       .then((data) => {
-        return data.data.nullifier_aggregate.aggregate.count;
+        devPortalEventCount = data.data.nullifier_aggregate.aggregate.count;
       })
       .catch((error) => {
         console.error(error);
